@@ -1,0 +1,61 @@
+{  
+   "AWSTemplateFormatVersion":"2010-09-09",
+   "Description":"This Template will create a NAT gateway, RouteTable and Route",
+   "Parameters":{  
+		"VPC": {
+		  "Description": "VPC ID where NAT and Route will be created",
+		  "Type": "AWS::EC2::VPC::Id",
+		  "Default":""
+		},
+		"PublicSubnetAz1": {
+		  "Description": "Public subnet ID where NAT will reside",
+		  "Type": "AWS::EC2::Subnet::Id",
+		  "Default":""
+		}
+   },
+   "Resources":{ 
+		"NAT":{  
+		 "Type":"AWS::EC2::NatGateway",
+		 "Properties":{  
+			"AllocationId":{  
+			   "Fn::GetAtt":[  
+				  "EIP",
+				  "AllocationId"
+			   ]
+			},
+			"SubnetId":{  
+			   "Ref":"PublicSubnetAz1"
+			}
+		 }
+		},
+		"EIP":{  
+		 "Type":"AWS::EC2::EIP",
+		 "Properties":{  
+			"Domain":"vpc"
+		 }
+		},
+		"PrivateRouteTable":{  
+		 "Type":"AWS::EC2::RouteTable",
+		 "Properties":{  
+			"VpcId":{  
+			   "Ref":"VPC"
+			},
+			"Tags": [
+			  { "Key": "Name", "Value": "PrivateRouteTable" }
+			]
+		 }
+		},
+		"PrivateNATRouteTableAssociation":{  
+		 "Type":"AWS::EC2::Route",
+		 "Properties":{  
+			"RouteTableId":{  
+			   "Ref":"PrivateRouteTable"
+			},
+			"DestinationCidrBlock":"0.0.0.0/0",
+			"NatGatewayId":{  
+			   "Ref":"NAT"
+			}
+		 }
+		}
+   }
+}
