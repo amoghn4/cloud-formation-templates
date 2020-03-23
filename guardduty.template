@@ -1,0 +1,118 @@
+{
+"AWSTemplateFormatVersion" :
+"2010-09-09",
+"Resources": {
+        "Detector": {
+            "Properties": {
+                "Enable": "true"
+            },
+            "Type": "AWS::GuardDuty::Detector"
+        },
+        "EventsRule": {
+            "Condition": "IsMaster",
+            "Properties": {
+                "EventPattern": {
+                    "source": [
+                        "aws.guardduty"
+                    ]
+                },
+                "State": "ENABLED",
+                "Targets": [
+                    {
+                        "Arn": {
+                            "Ref": "SNSTopic"
+                        },
+                        "Id": "sns"
+                    }
+                ]
+            },
+            "Type": "AWS::Events::Rule"
+        },
+        "Master": {
+            "Condition": "IsMember",
+            "Properties": {
+                "DetectorId": {
+                    "Ref": "Detector"
+                },
+                "InvitationId": {
+                    "Ref": "MemberInvitation"
+                },
+                "MasterId": "889335742672"
+            },
+            "Type": "AWS::GuardDuty::Master"
+        },
+        "Member": {
+            "Condition": "IsMaster",
+            "Properties": {
+                "DetectorId": {
+                    "Ref": "Detector"
+                },
+                "Email": "amogh.nagalla@veritas.com",
+                "MemberId": "336901404922",
+                "Status": "Invited"
+            },
+            "Type": "AWS::GuardDuty::Member"
+        },
+        "SNSTopic": {
+            "Condition": "IsMaster",
+            "Properties": {
+                "Subscription": []
+            },
+            "Type": "AWS::SNS::Topic"
+        },
+        "SNSTopicPolicy": {
+            "Condition": "IsMaster",
+            "Properties": {
+                "PolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sns:Publish"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "events.amazonaws.com"
+                            },
+                            "Resource": [
+                                {
+                                    "Ref": "SNSTopic"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "Topics": [
+                    {
+                        "Ref": "SNSTopic"
+                    }
+                ]
+            },
+            "Type": "AWS::SNS::TopicPolicy"
+        }
+    }
+    "Conditions": {
+        "IsMaster": {
+            "Fn::Equals": [
+                {
+                    "Ref": "AWS::AccountId"
+                },
+                "889335742672"
+            ]
+        },
+        "IsMember": {
+            "Fn::Not": [
+                {
+                    "Condition": "IsMaster"
+                }
+            ]
+        }
+    },
+    "Description": "GuardDuty for master and member accounts",
+    "Parameters": {
+        "MemberInvitation": {
+            "Description": "Invitation ID for member account, leave blank on master account",
+            "Type": "String"
+        }
+    },
+    
+}
